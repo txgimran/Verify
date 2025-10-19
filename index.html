@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Device Verification</title>
+  <style>
+    :root {
+      --primary: #4361ee;
+      --success: #06d6a0;
+      --danger: #ef476f;
+      --dark: #1a1a2e;
+      --light: #f8f9fa;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, var(--dark) 0%, #16213e 100%);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      transition: background 0.6s ease;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .description {
+      color: #aaa;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    
+    .status-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    
+    .status-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    
+    .status-title {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .status-message {
+      color: #aaa;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    
+    .progress-container {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin: 25px 0;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      margin: 30px 0;
+    }
+    
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-top: 5px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .device-id {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-family: monospace;
+      word-break: break-all;
+      font-size: 0.9rem;
+    }
+    
+    .btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+      display: inline-block;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #3a56d4;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .success {
+      color: var(--success);
+    }
+    
+    .error {
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🔒</div>
+    <h1>Device Verification</h1>
+    <p class="description">Verifying your device for security purposes</p>
+    
+    <div class="status-card">
+      <div id="statusIcon" class="status-icon">⏳</div>
+      <div id="statusTitle" class="status-title">Verifying Device</div>
+      <div id="statusMessage" class="status-message">Please wait while we check your device...</div>
+      
+      <div class="progress-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      
+      <div class="loading">
+        <div id="spinner" class="spinner"></div>
+      </div>
+      
+      <div id="deviceId" class="device-id hidden"></div>
+    </div>
+    
+    <button id="closeBtn" class="btn btn-primary hidden">Close</button>
+  </div>
+
+  <script>
+    // DOM Elements
+    const statusIcon = document.getElementById('statusIcon');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusMessage = document.getElementById('statusMessage');
+    const progressBar = document.getElementById('progressBar');
+    const spinner = document.getElementById('spinner');
+    const deviceId = document.getElementById('deviceId');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // URL Parameters
+    const params = new URLSearchParams(window.location.search);
+    const webhookUrl = decodeURIComponent(params.get("webhookUrl") || "");
+    const botId = params.get("botId") || "";
+
+    // Start verification immediately
+    document.addEventListener('DOMContentLoaded', startVerification);
+
+    async function startVerification() {
+      // Update progress
+      updateProgress(10, "Initializing verification...");
+      await delay(1000);
+      
+      // Create device fingerprint
+      updateProgress(30, "Creating device fingerprint...");
+      const deviceFingerprint = createDeviceFingerprint();
+      deviceId.textContent = `Device ID: ${deviceFingerprint}`;
+      deviceId.classList.remove('hidden');
+      await delay(1500);
+      
+      // Check for VPN
+      updateProgress(50, "Checking for VPN...");
+      const vpnDetected = await checkForVPN();
+      await delay(1500);
+      
+      if (vpnDetected) {
+        // VPN detected - show error
+        updateProgress(100, "VPN detected!");
+        showResult("error", "❌ VPN Detected", "Please disable your VPN and try again.");
+        sendWebhook("vpn");
+        return;
+      }
+      
+      // Check if device is already verified
+      updateProgress(70, "Checking verification status...");
+      const alreadyVerified = localStorage.getItem('verifiedDevice') === deviceFingerprint;
+      await delay(1000);
+      
+      if (alreadyVerified) {
+        // Device already verified
+        updateProgress(100, "Already verified!");
+        showResult("success", "✅ Already Verified", "This device has already been verified.");
+        sendWebhook("already_verified");
+      } else {
+        // New device - verify it
+        updateProgress(90, "Finalizing verification...");
+        localStorage.setItem('verifiedDevice', deviceFingerprint);
+        await delay(1000);
+        
+        updateProgress(100, "Verification complete!");
+        showResult("success", "✅ Verification Successful", "Your device has been successfully verified.");
+        sendWebhook("verified");
+      }
+    }
+
+    function updateProgress(percent, message) {
+      progressBar.style.width = `${percent}%`;
+      statusMessage.textContent = message;
+    }
+
+    function showResult(type, title, message) {
+      spinner.style.display = 'none';
+      statusIcon.textContent = type === "success" ? "✅" : "❌";
+      statusIcon.className = `status-icon ${type === "success" ? "success" : "error"}`;
+      statusTitle.textContent = title;
+      statusMessage.textContent = message;
+      closeBtn.classList.remove('hidden');
+      
+      // Change background based on result
+      document.body.style.background = type === "success" 
+        ? "linear-gradient(135deg, #1a3a1a 0%, #0f5c0f 100%)" 
+        : "linear-gradient(135deg, #3a1a1a 0%, #5c0f0f 100%)";
+    }
+
+    function createDeviceFingerprint() {
+      const factors = [
+        navigator.userAgent,
+        navigator.hardwareConcurrency,
+        screen.width,
+        screen.height,
+        navigator.language,
+        new Date().getTimezoneOffset()
+      ].join('|');
+      
+      return btoa(factors).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+    }
+
+    async function checkForVPN() {
+      try {
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel('');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        return new Promise(resolve => {
+          let vpnDetected = false;
+          
+          pc.onicecandidate = (ice) => {
+            if (!ice || !ice.candidate) {
+              resolve(vpnDetected);
+              return;
+            }
+            
+            const candidate = ice.candidate.candidate;
+            if (candidate.includes('relay') || candidate.includes('srflx') || 
+                candidate.includes('turn') || candidate.includes('vpn')) {
+              vpnDetected = true;
+            }
+          };
+          
+          setTimeout(() => resolve(vpnDetected), 1500);
+        });
+      } catch (error) {
+        console.error('VPN check error:', error);
+        return false;
+      }
+    }
+
+    function sendWebhook(status) {
+      if (!webhookUrl) return;
+      
+      const deviceFingerprint = createDeviceFingerprint();
+      
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+          botId, 
+          status,
+          deviceFingerprint,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(error => console.error('Webhook error:', error));
+    }
+
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Close button event
+    closeBtn.addEventListener('click', () => {
+      window.close();
+    });
+  </script>
+</body>
+</html>
